@@ -2,6 +2,49 @@
 
 Polybow was a Python trading bot for short-duration Polymarket crypto prediction markets. It combined market discovery, Gamma/CLOB APIs, WebSocket order books, Chainlink/RTDS oracle capture, execution, monitoring, strategy research and post-trade reconciliation. This repository reconstructs the live experiment from an anonymized market-level ledger. It is a postmortem about data quality, probability, fee drag, risk concentration and operational controls—not evidence of a profitable strategy.
 
+## The question
+
+Polymarket's short-duration markets made a small price gap look attractive. At
+$0.99, a winning share has only about one cent of gross upside before fees,
+spread, latency and fillability. The actual problem was therefore not simply
+predicting whether BTC would move up or down. The bot had to capture the right
+opening oracle value, read a changing CLOB, find an executable price and record
+what really happened after resolution.
+
+## From the first loop to the failed edge
+
+The system began with market discovery, Chainlink/RTDS opening-price capture,
+probability checks, order-book reads, CLOB execution, resolution handling, a
+monitor and a post-trade ledger. The first live version produced 108 fires and
+showed that high-confidence favorite fills left little room after fees.
+
+StratA and then StratB moved the search toward cheaper, asymmetric entries and a
+larger gap between market price and the captured oracle move. The phase report
+records 299 StratB rank4 fires and 99 wins. Polling was then replaced by an
+event-driven WebSocket path so a book update could trigger evaluation sooner;
+historical latency notes are context, not reproduced performance evidence.
+
+The reconstructed ledger reached a $221.40 peak after market 347 from the
+documented $18 starting-balance assumption. A separate liquid-balance audit
+observed an approximate $210.22 peak. This was a concentrated run-up, not a
+bankable profitability result, and the available artifacts cannot attribute
+every winning fill to one bot.
+
+The later test opened the $0.01-$0.20 cheap-fill path and exercised gap and
+StratB variants. UC recorded 0/8. The overlapping fire counts are not one
+deduplicated failure total. The evidence pointed to fee drag, oracle timing,
+fillability and expanded exposure; the original edge was treated as dead.
+
+## How AI was used
+
+AI was used as an engineering multiplier around the system: to break hypotheses
+into implementation tasks, iterate on code and variants, inspect traces, debug,
+refactor and help organize the evidence. It was not the market oracle, did not
+place trades and did not turn the peak into a prediction or profitability claim.
+The final checks use the shipped ledger, regression tests, replay/analysis and
+on-chain review. The public archive does not claim unaided authorship, customer
+adoption or measured productivity gains.
+
 ## Verified result
 
 The source audit reconciled 1,590 trade rows into 1,137 markets. The latest forensic review distinguishes the reported $18 starting balance, a reconstructed peak of **$221.40**, and an independently observed liquid peak of approximately **$210.22**. The theoretical market-ledger PnL was **-$5.53**; settled wallet cash was lower and the available artifacts do not isolate every fee, dust and settlement difference.

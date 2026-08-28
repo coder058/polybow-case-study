@@ -36,3 +36,11 @@ test('SOL empty state, pagination and filter reset use the shipped ledger', () =
   assert.equal(count(), 327);
   assert.match(readFileSync(path.join(__dirname, '../ledger-fixes.css'), 'utf8'), /\.show-more\[hidden\]\{display:none\}/);
 });
+
+test('the public story names the problem, iterations and AI boundary', () => {
+  const html = readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  for (const phrase of ['THE POLYMARKET PROBLEM', 'STRATA → STRATB', 'OPEN TEST → UC', 'HOW AI ENTERED THE BUILD', 'AI did not place trades']) {
+    assert.ok(html.includes(phrase), phrase);
+  }
+  assert.match(html, /\$221\.40 RECONSTRUCTED/);
+});

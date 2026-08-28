@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Polybow — a Python trading bot for short-duration Polymarket prediction markets, and the forensic postmortem of what happened when the edge disappeared.">
+  <meta name="description" content="Polybow — the problem, iterations and forensic postmortem of a Python trading bot for short-duration Polymarket prediction markets.">
   <title>Polybow / Live System Postmortem</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="ledger-fixes.css">
@@ -23,11 +23,11 @@
 
   <main id="top">
     <section class="hero">
-      <p class="eyebrow">PYTHON TRADING BOT / POLYMARKET CRYPTO MARKETS</p>
-      <h1>1,137 MARKETS.<br>THE BUILD.<br>THE DRAWDOWN.</h1>
+      <p class="eyebrow">01 / THE POLYMARKET PROBLEM / PYTHON TRADING BOT</p>
+      <h1>COULD A<br>ONE-CENT EDGE<br>SURVIVE?</h1>
       <div class="hero-bottom">
-        <p>Polybow was a trading bot for short-duration prediction markets. I built the market discovery, Chainlink price capture, order-book ingestion, CLOB execution, strategy research, monitor UI and post-trade ledger around one question: could a small system find mispriced probability after fees, latency and fillability?</p>
-        <p class="warning">Early gains did not survive the full run. <span id="ledgerOutcome">Recalculating the full ledger…</span> This is market-resolution accounting, not settled wallet cash or proof of a durable edge.</p>
+        <p>Polymarket offered short-duration BTC markets where a tiny price gap could look like an edge. But a $0.99 share leaves only about one cent before fees, spread, latency and a disappearing order book. The question was simple: could software turn that theoretical gap into a repeatable, fillable trade?</p>
+        <p class="warning">The answer changed as the bot met real execution. <span id="ledgerOutcome">Recalculating the full ledger…</span> This is market-resolution accounting, not settled wallet cash or proof of a durable edge.</p>
       </div>
     </section>
 
@@ -41,23 +41,32 @@
 
     <section class="story-panel">
       <div class="story-intro">
-        <p>01 / THE QUESTION</p>
-        <h2>Could a one-cent edge survive contact with the market?</h2>
-        <p>At $0.99, a winning share returns only about one cent before fees, spread and execution drag. One adverse resolution can erase roughly a hundred one-cent wins. The hard problem was not guessing whether BTC would move up or down; it was capturing the opening oracle value, reading a changing CLOB, finding a fillable price and doing all of it before the book disappeared.</p>
+        <p>02 / BUILD + ITERATION LOG</p>
+        <h2>The bot changed whenever the evidence disagreed.</h2>
+        <p>The work moved from a polling prototype to event-driven execution, from expensive favorites to asymmetric cheap fills, and finally to controlled variants. AI was used as an engineering multiplier for decomposition, implementation, debugging, refactoring and analysis; it was not the market oracle, a trading signal or a substitute for the ledger.</p>
       </div>
       <div class="story-grid">
-        <article><span>MARCH–APR 16 / BUILD THE LOOP</span><h3>THE SLOW VERSION</h3><p>I built discovery, Chainlink/RTDS opening-price capture, probability checks, order-book reads, execution, resolution and a post-trade ledger. The first system relied too heavily on polling and stale snapshots. A roughly 27-second oracle update cycle was useful for research, not precision trading.</p></article>
-        <article><span>APR 16–23 / POLYBOW</span><h3>108 FIRES</h3><p>The first live version targeted high-confidence BTC five-minute markets. It proved the full loop could run, but expensive favorite fills left almost no room after fees. The lesson was execution economics: prediction accuracy alone was not the product.</p></article>
-        <article><span>APR 24–30 / STRATA → STRATB</span><h3>299 FIRES / 99 WINS</h3><p>StratA and then StratB moved the search toward asymmetric, cheaper fills and a larger gap between the market price and the captured oracle move. The phase report records 299 StratB rank4 fires and 99 wins. That result was enough to justify testing the mechanism, not enough to call it a proven edge.</p></article>
-        <article><span>EVENT-DRIVEN OPTIMIZATION</span><h3>WS HOT EVAL</h3><p>Polling was replaced by an event-driven WebSocket path: a book update could trigger evaluation immediately instead of waiting for the next loop. Historical notes describe a per-market gate, warm HTTP/2 connections and faster signing on a Dublin VPS. Those latency measurements are not reproduced by this public archive; its reproducible evidence is the ledger analysis below.</p></article>
-        <article><span>APR 16–MAY 2 / THE PEAK</span><h3>347 MARKETS / $210.22</h3><p>After the execution work, ultra-cheap BTC fills produced the concentrated run-up. The peak is visible in the reconstructed ledger and in the observed liquid-balance audit. The data does not prove that one bot caused every winning fill, so the page keeps that attribution limit visible.</p></article>
-        <article><span>MAY 2–17 / OPEN THE TEST</span><h3>THE EDGE DISAPPEARS</h3><p>On May 2 I removed the paper floor below $0.10, share-count caps, per-slug lock and paper-capital gate, opening the $0.01–$0.20 cheap-fill path for a real test. The later reports contain 113 gap5 fires, 32 gap10 fires, 112 StratB-variant fires, 55 later StratB fires and 8 UC fires; these overlap and are not one deduplicated failure total. UC was 0/8. I kept testing to determine why the edge was gone: fees, oracle timing, fillability and changed market conditions.</p></article>
+        <article><span>BUILD 01 / THE LOOP</span><h3>MAKE THE TRADE POSSIBLE</h3><p>I built market discovery, Chainlink/RTDS opening-price capture, probability checks, order-book reads, CLOB execution, resolution handling, a monitor and a post-trade ledger. The first version relied too heavily on polling and stale snapshots: a research loop had to become an execution system.</p></article>
+        <article><span>FIRST LIVE RUN / 108 FIRES</span><h3>ACCURACY WAS NOT ENOUGH</h3><p>The first live version targeted high-confidence BTC five-minute markets. The loop ran, but expensive favorite fills left almost no room after fees. The first lesson was execution economics: being right about direction was not the same as having positive expected value after getting filled.</p></article>
+        <article><span>STRATA → STRATB / 299 FIRES</span><h3>CHEAPER, ASYMMETRIC FILLS</h3><p>StratA and then StratB moved the search toward cheaper entries and a larger gap between the market price and the captured oracle move. The phase report records 299 StratB rank4 fires and 99 wins. It justified another test; it did not prove a durable edge.</p></article>
+        <article><span>EVENT-DRIVEN BUILD / WEBSOCKETS</span><h3>REMOVE THE WAIT</h3><p>Polling was replaced by an event-driven WebSocket path so a book update could trigger evaluation immediately. The system combined live book data, oracle timing and execution decisions. Historical latency notes are context only; the public evidence is the ledger and its reproducible analysis.</p></article>
+        <article><span>RUN-UP / 347 MARKETS</span><h3>$221.40 RECONSTRUCTED</h3><p>The anonymized ledger reconstructs a peak of $221.40 after market 347 from an $18 starting-balance assumption. A separate liquid-balance audit observed an approximate $210.22 peak. The run-up was concentrated in cheap BTC fills, and attribution to one bot is not complete.</p></article>
+        <article><span>OPEN TEST → UC / 0 FOR 8</span><h3>THE EDGE DISAPPEARS</h3><p>We opened the $0.01–$0.20 cheap-fill path and tested later gap and StratB variants. The reports include overlapping fire counts, not one failure total. UC recorded 0/8. The iterations pointed to fee drag, oracle timing, fillability and expanded exposure—not a new profitable system.</p></article>
       </div>
       <p class="story-note">The public archive contains 1,590 trade rows across 1,137 markets. There is no defensible single “failed tries” total: local histories also contain non-fills, duplicated and backfilled records. The early phase counts above come from bot reports and are not identical to the final anonymized on-chain ledger. The on-chain ledger is authoritative for market activity.</p>
     </section>
 
+    <section class="ai-panel">
+      <header><div><p>03 / HOW AI ENTERED THE BUILD</p><h2>AI was the multiplier.<br>Evidence was the brake.</h2></div></header>
+      <div class="ai-grid">
+        <article><span>01 / DECOMPOSE</span><h3>Turn hypotheses into tasks.</h3><p>Use AI to break a market question into capture, book, execution, ledger and monitor changes that can be inspected separately.</p></article>
+        <article><span>02 / ITERATE</span><h3>Build, test, compare.</h3><p>Use agents to implement and refactor variants, inspect traces and compare what changed. The strategy still had to face the actual fill and resolution records.</p></article>
+        <article><span>03 / VALIDATE</span><h3>Reject plausible stories.</h3><p>Use source data, regression tests, replay and on-chain checks to challenge the output. AI did not place trades, predict outcomes or turn a peak into a profitability claim.</p></article>
+      </div>
+    </section>
+
     <section class="problem-panel">
-      <header><div><p>02 / WHAT THE SYSTEM HAD TO SOLVE</p><h2>The last cent was not free.</h2></div></header>
+      <header><div><p>04 / WHAT THE SYSTEM HAD TO SOLVE</p><h2>The last cent was not free.</h2></div></header>
       <div class="problem-grid">
         <article><strong>0.99</strong><p>A share bought at $0.99 has roughly one cent of gross upside before fees and execution drag. Break-even is not just the ask: it is the ask plus taker fee plus slippage. It is not literally impossible to win; it is mathematically hostile to positive expected value.</p></article>
         <article><strong>CHAINLINK</strong><p>The market did not resolve against whichever price was easiest to read. A broken snapshotter returned the wrong round, and the standard Polygon BTC/USD aggregator did not match Polymarket Data Streams. The fix was to capture the correct first report at or after open and align clocks with the price-to-beat.</p></article>
@@ -66,7 +75,7 @@
     </section>
 
     <section class="skills-panel">
-      <header><div><p>03 / WHAT I BUILT</p><h2>The stack behind the story.</h2></div></header>
+      <header><div><p>05 / WHAT I BUILT</p><h2>The stack behind the story.</h2></div></header>
       <div class="skills-list">
         <span>PYTHON</span><span>POLYMARKET GAMMA API</span><span>CLOB API</span><span>WEBSOCKETS</span><span>CHAINLINK RTDS</span><span>ORDER-BOOK DATA</span><span>ASYNC EXECUTION</span><span>SQLITE</span><span>BACKTESTING</span><span>REPLAY / GRID SEARCH</span><span>PROBABILITY</span><span>EXPECTED VALUE</span><span>FEE + SLIPPAGE MODELING</span><span>PNL ATTRIBUTION</span><span>MONITOR UI</span><span>TESTING</span><span>ON-CHAIN VERIFICATION</span>
       </div>
@@ -77,7 +86,7 @@
 
     <section class="desk-panel chart-panel">
       <header>
-        <div><p>04 / BALANCE RECONSTRUCTION</p><h2>Full history</h2></div>
+        <div><p>06 / BALANCE RECONSTRUCTION</p><h2>Full history</h2></div>
         <div class="legend"><span class="peak-key"></span> PEAK <span class="balance-key"></span> BALANCE</div>
       </header>
       <div class="chart-wrap">
@@ -89,18 +98,18 @@
 
     <section class="desk-grid">
       <article class="desk-panel">
-        <header><div><p>05 / PHASE CHANGE</p><h2>Before / after peak</h2></div></header>
+        <header><div><p>07 / PHASE CHANGE</p><h2>Before / after peak</h2></div></header>
         <div id="phaseTable" class="data-table"></div>
       </article>
       <article class="desk-panel">
-        <header><div><p>06 / ENTRY EXPOSURE</p><h2>Price bands</h2></div></header>
+        <header><div><p>08 / ENTRY EXPOSURE</p><h2>Price bands</h2></div></header>
         <div id="bandTable" class="data-table"></div>
       </article>
     </section>
 
     <section class="desk-panel ledger-panel">
       <header>
-        <div><p>07 / MARKET LEDGER</p><h2>All 1,137 records</h2></div>
+        <div><p>09 / MARKET LEDGER</p><h2>All 1,137 records</h2></div>
         <div class="filters" aria-label="Filter market ledger">
           <button class="active" data-filter="all">ALL</button>
           <button data-filter="btc">BTC</button>
@@ -118,7 +127,7 @@
     </section>
 
     <section class="closing">
-      <p>08 / CONTROL REVIEW</p>
+      <p>10 / CONTROL REVIEW</p>
       <h2>The edge disappeared after the patch.</h2>
       <div>
         <p>The patch changed the conditions around the strategy. I kept testing the same idea and controlled variants to determine whether the edge was still alive and why execution no longer supported it.</p>
