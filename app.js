@@ -101,7 +101,11 @@ function initLedger(rows) {
     }
   };
   document.querySelectorAll("[data-filter]").forEach(button => button.addEventListener("click", () => {
-    document.querySelector("[data-filter].active")?.classList.remove("active"); button.classList.add("active");
+    document.querySelectorAll("[data-filter]").forEach(item => {
+      item.classList.remove("active");
+      item.setAttribute("aria-pressed", String(item === button));
+    });
+    button.classList.add("active");
     filter = button.dataset.filter; visible = PAGE_SIZE; render();
   }));
   more.addEventListener("click", () => { visible += PAGE_SIZE; render(); });

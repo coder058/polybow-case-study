@@ -8,6 +8,7 @@ test('SOL empty state, pagination and filter reset use the shipped ledger', () =
   const source = readFileSync(path.join(__dirname, '../app.js'), 'utf8');
   const csv = readFileSync(path.join(__dirname, '../data/market_ledger.csv'), 'utf8');
   const make = () => ({ innerHTML: '', hidden: false, listeners: {}, children: [],
+    attributes: {}, setAttribute(key, value) { this.attributes[key] = value; },
     classList: { add() {}, remove() {} },
     addEventListener(type, fn) { this.listeners[type] = fn; },
     append(child) { this.children.push(child); },
@@ -28,6 +29,8 @@ test('SOL empty state, pagination and filter reset use the shipped ledger', () =
   assert.equal(count(), 80);
   more.listeners.click(); assert.equal(count(), 160);
   buttons[3].listeners.click();
+  assert.equal(buttons[3].attributes['aria-pressed'], 'true');
+  assert.equal(buttons[0].attributes['aria-pressed'], 'false');
   assert.equal(more.hidden, true);
   assert.match(body.children[0].children[0].textContent, /No SOL records/);
   buttons[2].listeners.click(); assert.equal(count(), 80); assert.equal(more.hidden, false);
@@ -35,12 +38,4 @@ test('SOL empty state, pagination and filter reset use the shipped ledger', () =
   // SOURCE: the checked-in CSV contains 327 ETH market rows.
   assert.equal(count(), 327);
   assert.match(readFileSync(path.join(__dirname, '../ledger-fixes.css'), 'utf8'), /\.show-more\[hidden\]\{display:none\}/);
-});
-
-test('the public story names the problem, iterations and AI boundary', () => {
-  const html = readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-  for (const phrase of ['THE POLYMARKET PROBLEM', 'STRATA → STRATB', 'OPEN TEST → UC', 'HOW AI ENTERED THE BUILD', 'AI did not place trades']) {
-    assert.ok(html.includes(phrase), phrase);
-  }
-  assert.match(html, /\$221\.40 RECONSTRUCTED/);
 });

@@ -3,139 +3,75 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Polybow — the problem, iterations and forensic postmortem of a Python trading bot for short-duration Polymarket prediction markets.">
-  <title>Polybow / Live System Postmortem</title>
+  <meta name="description" content="How Polybow evolved into StratA, StratB and UC: Python, event-driven execution, a Dublin VPS, measured timings and the live outcome.">
+  <title>Polybow / Development notes</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="ledger-fixes.css">
-  <style>
-    .hero-bottom{grid-template-columns:repeat(2,minmax(0,620px))}
-    .hero-bottom .warning{font:clamp(18px,1.55vw,25px)/1.15 var(--sans);letter-spacing:-.025em}
-    @media (max-width:760px){.hero-bottom{grid-template-columns:1fr}}
-  </style>
   <script src="app.js" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#story">Skip to development history</a>
   <header class="topbar">
-    <a class="brand" href="#top">POLYBOW / LIVE TRADING SYSTEM</a>
-    <div class="desk-state"><span></span> FORENSIC ARCHIVE</div>
-    <nav><a href="https://github.com/coder058/polybow-case-study" target="_blank" rel="noreferrer">GITHUB ↗</a><a href="https://polymarket.com/profile/0x0022C02Dda115a6E0307007881a6e19394883DB0" target="_blank" rel="noreferrer">WALLET ↗</a></nav>
+    <a class="brand" href="#top">“POLYBOW”</a>
+    <nav aria-label="Main"><a href="#execution">Execution</a><a href="#outcome">Outcome</a><a href="https://github.com/coder058/polybow-case-study">Source ↗</a></nav>
   </header>
-
   <main id="top">
     <section class="hero">
-      <p class="eyebrow">01 / THE POLYMARKET PROBLEM / PYTHON TRADING BOT</p>
-      <h1>COULD A<br>ONE-CENT EDGE<br>SURVIVE?</h1>
-      <div class="hero-bottom">
-        <p>Polymarket offered short-duration BTC markets where a tiny price gap could look like an edge. But a $0.99 share leaves only about one cent before fees, spread, latency and a disappearing order book. The question was simple: could software turn that theoretical gap into a repeatable, fillable trade?</p>
-        <p class="warning">The answer changed as the bot met real execution. <span id="ledgerOutcome">Recalculating the full ledger…</span> This is market-resolution accounting, not settled wallet cash or proof of a durable edge.</p>
+      <p class="eyebrow">Development notes / March–May 2026</p>
+      <h1>Building Polybow.</h1>
+      <p class="lead">Could a bot act on a price mismatch before the order book caught up?</p>
+      <p class="intro">Polymarket’s short-duration crypto markets compare an opening and closing oracle price. I built a Python system to capture that reference, follow prices and place orders when the book appeared to disagree.</p>
+      <p class="stack">Python / WebSockets / Chainlink RTDS / Binance / CLOB API / AWS Lightsail</p>
+    </section>
+    <section id="story" class="section">
+      <div class="section-heading"><p class="eyebrow">01 / Development</p><h2>Polybow → StratA → StratB → UC</h2></div>
+      <ol class="timeline">
+        <li><div><span class="index">01</span><h3>Polybow</h3></div><p>The first version bought likely winners near expiry. Expensive entries left little upside even when the direction was right. The early oracle feed updated roughly every 27 seconds; faster Binance data and, later, Chainlink RTDS and live order books became part of the pipeline.</p></li>
+        <li><div><span class="index">02</span><h3>StratA</h3></div><p>I moved to mid-priced contracts: $0.40–$0.72, with 11–15 seconds remaining. The aim was more upside per winning trade, not simply a higher win rate. Cheaper entries could also reverse before resolution.</p></li>
+        <li><div><span class="index">03</span><h3>StratB</h3></div><p>A fork of StratA tested wider entry windows and larger BTC-to-opening-price gaps. WebSocket-triggered “hot eval” let a book update run the decision immediately. On the Dublin AWS Lightsail VPS, cached metadata and a warmed execution path reduced work between the signal and the order.</p></li>
+        <li><div><span class="index">04</span><h3>UC <small>Ultra-cheap</small></h3></div><p>The next branch explored $0.01–$0.20 contracts and maker orders below the ask; a later patch also tried a taker leg. Cheap winning shares drove the wallet’s run-up, but fast submission did not guarantee a fill. Later cheap-entry results failed to repeat it.</p></li>
+      </ol>
+      <p class="build-note">I used AI assistance for implementation, strategy experiments and log analysis. Actual fills and wallet reconciliation were the checks on those outputs. These were overlapping branches, not four isolated A/B tests.</p>
+    </section>
+    <section id="execution" class="section">
+      <div class="section-heading"><p class="eyebrow">02 / Execution</p><h2>What became faster</h2></div>
+      <p class="section-copy">Hot eval bypassed the polling wait. Its per-market re-evaluation gate changed from 50 to 5 ms. The Dublin setup used HTTP/2 and faster signing; subsequent changes preloaded token metadata and fetched missing metadata in parallel.</p>
+      <div class="timing-grid">
+        <article><span class="eyebrow">Early data source</span><strong>~27 s</strong><p>Reported oracle update interval.<br>Not order latency.</p></article>
+        <article><span class="eyebrow">StratB / archived execution</span><strong>35.4 ms</strong><p>Median preparation + POST response.<br>p95: 298.0 ms · 52 records.</p></article>
+        <article><span class="eyebrow">UC / archived execution</span><strong>33.0 ms</strong><p>Median preparation + POST response.<br>p95: 289.2 ms · 22 records.</p></article>
       </div>
-    </section>
-
-    <section class="metrics" aria-label="Verified summary">
-      <article><span>MARKETS</span><strong id="markets">—</strong></article>
-      <article><span>TRADE ROWS</span><strong id="trades">—</strong></article>
-      <article><span>STARTING CAPITAL*</span><strong id="starting">—</strong></article>
-      <article><span>PEAK CAPITAL*</span><strong id="peak">—</strong></article>
-      <article><span>TOTAL VOLUME*</span><strong id="volume">—</strong></article>
-    </section>
-
-    <section class="story-panel">
-      <div class="story-intro">
-        <p>02 / BUILD + ITERATION LOG</p>
-        <h2>The bot changed whenever the evidence disagreed.</h2>
-        <p>The work moved from a polling prototype to event-driven execution, from expensive favorites to asymmetric cheap fills, and finally to controlled variants. AI was used as an engineering multiplier for decomposition, implementation, debugging, refactoring and analysis; it was not the market oracle, a trading signal or a substitute for the ledger.</p>
-      </div>
-      <div class="story-grid">
-        <article><span>BUILD 01 / THE LOOP</span><h3>MAKE THE TRADE POSSIBLE</h3><p>I built market discovery, Chainlink/RTDS opening-price capture, probability checks, order-book reads, CLOB execution, resolution handling, a monitor and a post-trade ledger. The first version relied too heavily on polling and stale snapshots: a research loop had to become an execution system.</p></article>
-        <article><span>FIRST LIVE RUN / 108 FIRES</span><h3>ACCURACY WAS NOT ENOUGH</h3><p>The first live version targeted high-confidence BTC five-minute markets. The loop ran, but expensive favorite fills left almost no room after fees. The first lesson was execution economics: being right about direction was not the same as having positive expected value after getting filled.</p></article>
-        <article><span>STRATA → STRATB / 299 FIRES</span><h3>CHEAPER, ASYMMETRIC FILLS</h3><p>StratA and then StratB moved the search toward cheaper entries and a larger gap between the market price and the captured oracle move. The phase report records 299 StratB rank4 fires and 99 wins. It justified another test; it did not prove a durable edge.</p></article>
-        <article><span>EVENT-DRIVEN BUILD / WEBSOCKETS</span><h3>REMOVE THE WAIT</h3><p>Polling was replaced by an event-driven WebSocket path so a book update could trigger evaluation immediately. The system combined live book data, oracle timing and execution decisions. Historical latency notes are context only; the public evidence is the ledger and its reproducible analysis.</p></article>
-        <article><span>RUN-UP / 347 MARKETS</span><h3>$221.40 RECONSTRUCTED</h3><p>The anonymized ledger reconstructs a peak of $221.40 after market 347 from an $18 starting-balance assumption. A separate liquid-balance audit observed an approximate $210.22 peak. The run-up was concentrated in cheap BTC fills, and attribution to one bot is not complete.</p></article>
-        <article><span>OPEN TEST → UC / 0 FOR 8</span><h3>THE EDGE DISAPPEARS</h3><p>We opened the $0.01–$0.20 cheap-fill path and tested later gap and StratB variants. The reports include overlapping fire counts, not one failure total. UC recorded 0/8. The iterations pointed to fee drag, oracle timing, fillability and expanded exposure—not a new profitable system.</p></article>
-      </div>
-      <p class="story-note">The public archive contains 1,590 trade rows across 1,137 markets. There is no defensible single “failed tries” total: local histories also contain non-fills, duplicated and backfilled records. The early phase counts above come from bot reports and are not identical to the final anonymized on-chain ledger. The on-chain ledger is authoritative for market activity.</p>
-    </section>
-
-    <section class="ai-panel">
-      <header><div><p>03 / HOW AI ENTERED THE BUILD</p><h2>AI was the multiplier.<br>Evidence was the brake.</h2></div></header>
-      <div class="ai-grid">
-        <article><span>01 / DECOMPOSE</span><h3>Turn hypotheses into tasks.</h3><p>Use AI to break a market question into capture, book, execution, ledger and monitor changes that can be inspected separately.</p></article>
-        <article><span>02 / ITERATE</span><h3>Build, test, compare.</h3><p>Use agents to implement and refactor variants, inspect traces and compare what changed. The strategy still had to face the actual fill and resolution records.</p></article>
-        <article><span>03 / VALIDATE</span><h3>Reject plausible stories.</h3><p>Use source data, regression tests, replay and on-chain checks to challenge the output. AI did not place trades, predict outcomes or turn a peak into a profitability claim.</p></article>
-      </div>
-    </section>
-
-    <section class="problem-panel">
-      <header><div><p>04 / WHAT THE SYSTEM HAD TO SOLVE</p><h2>The last cent was not free.</h2></div></header>
-      <div class="problem-grid">
-        <article><strong>0.99</strong><p>A share bought at $0.99 has roughly one cent of gross upside before fees and execution drag. Break-even is not just the ask: it is the ask plus taker fee plus slippage. It is not literally impossible to win; it is mathematically hostile to positive expected value.</p></article>
-        <article><strong>CHAINLINK</strong><p>The market did not resolve against whichever price was easiest to read. A broken snapshotter returned the wrong round, and the standard Polygon BTC/USD aggregator did not match Polymarket Data Streams. The fix was to capture the correct first report at or after open and align clocks with the price-to-beat.</p></article>
-        <article><strong>THE BOOK</strong><p>Best bid and ask were not enough. Quote size, disappearing liquidity, latency and slippage determined whether a theoretical edge could become a real fill. The monitor had to show the difference.</p></article>
-      </div>
-    </section>
-
-    <section class="skills-panel">
-      <header><div><p>05 / WHAT I BUILT</p><h2>The stack behind the story.</h2></div></header>
-      <div class="skills-list">
-        <span>PYTHON</span><span>POLYMARKET GAMMA API</span><span>CLOB API</span><span>WEBSOCKETS</span><span>CHAINLINK RTDS</span><span>ORDER-BOOK DATA</span><span>ASYNC EXECUTION</span><span>SQLITE</span><span>BACKTESTING</span><span>REPLAY / GRID SEARCH</span><span>PROBABILITY</span><span>EXPECTED VALUE</span><span>FEE + SLIPPAGE MODELING</span><span>PNL ATTRIBUTION</span><span>MONITOR UI</span><span>TESTING</span><span>ON-CHAIN VERIFICATION</span>
-      </div>
-      <div class="source-links"><a href="https://github.com/coder058/polybow-case-study" target="_blank" rel="noreferrer">GITHUB ARCHIVE ↗</a><a href="https://polymarket.com/profile/0x0022C02Dda115a6E0307007881a6e19394883DB0" target="_blank" rel="noreferrer">PUBLIC POLYMARKET WALLET ↗</a><a href="https://polygonscan.com/address/0x0022C02Dda115a6E0307007881a6e19394883DB0" target="_blank" rel="noreferrer">ON-CHAIN ACTIVITY ↗</a></div>
-      <div class="skills-list research-scale"><span>LATER RESEARCH · 4.75M FEED ROWS</span><span>205,980 CANDIDATE RECORDS</span><span>16,610 CONCRETE INSTANCES</span><span>0 CONTROLLED SURVIVORS</span></div>
-      <p class="footnote">These counts are research artifacts across later surface batches, not 16,610 independent edges or live-profit results.</p>
-    </section>
-
-    <section class="desk-panel chart-panel">
-      <header>
-        <div><p>06 / BALANCE RECONSTRUCTION</p><h2>Full history</h2></div>
-        <div class="legend"><span class="peak-key"></span> PEAK <span class="balance-key"></span> BALANCE</div>
-      </header>
-      <div class="chart-wrap">
-        <svg id="equityChart" viewBox="0 0 1200 500" role="img" aria-label="Reconstructed balance across every market"></svg>
-        <div id="tooltip" class="tooltip" hidden></div>
-      </div>
-      <p class="footnote">* Balance uses the documented $18 starting-balance assumption. Total volume is the sum of ledger cost across all 1,590 trade rows. The curve uses theoretical market-resolution accounting; settled wallet cash was lower, and the available artifacts do not isolate every fee, dust and settlement difference.</p>
-    </section>
-
-    <section class="desk-grid">
-      <article class="desk-panel">
-        <header><div><p>07 / PHASE CHANGE</p><h2>Before / after peak</h2></div></header>
-        <div id="phaseTable" class="data-table"></div>
-      </article>
-      <article class="desk-panel">
-        <header><div><p>08 / ENTRY EXPOSURE</p><h2>Price bands</h2></div></header>
-        <div id="bandTable" class="data-table"></div>
-      </article>
-    </section>
-
-    <section class="desk-panel ledger-panel">
-      <header>
-        <div><p>09 / MARKET LEDGER</p><h2>All 1,137 records</h2></div>
-        <div class="filters" aria-label="Filter market ledger">
-          <button class="active" data-filter="all">ALL</button>
-          <button data-filter="btc">BTC</button>
-          <button data-filter="eth">ETH</button>
-          <button data-filter="sol">SOL</button>
+      <p class="caption">Recomputed from the May 3 logs. These are different measurements, not a “27 seconds to 33 milliseconds” speed-up. API acknowledgements are not confirmed fills; the 5 ms gate is a configuration value.</p>
+      <details class="evidence"><summary>Timing breakdown and sources</summary>
+        <div class="detail-body">
+          <div class="ledger-scroll"><table><caption>May 3, 2026 · milliseconds · all complete LAT_DETAIL records</caption><thead><tr><th scope="col">Component</th><th scope="col">StratB median</th><th scope="col">UC median</th></tr></thead><tbody><tr><th scope="row">Build order</th><td>1.7</td><td>1.9</td></tr><tr><th scope="row">POST response</th><td>32.9</td><td>29.5</td></tr><tr><th scope="row">Preparation + response</th><td>35.4</td><td>33.0</td></tr></tbody></table></div>
+          <p>StratB: 00:44–04:54 UTC. UC: 00:44–01:59 UTC. The timer starts at metadata preparation and ends at the API response; it excludes earlier feed/decision time and later settlement. Component medians do not sum to the total median.</p>
+          <p>Of these responses, 51/52 StratB and 22/22 UC orders were resting, not immediately matched. The remaining StratB “matched” response was not independently verified in the later audit. These timings do not demonstrate profitable execution.</p>
+          <a href="https://github.com/coder058/polybow-case-study/blob/main/EVIDENCE.md">Source notes, log hashes and reproduction ↗</a>
         </div>
-      </header>
-      <div class="ledger-scroll">
-        <table>
-          <thead><tr><th>#</th><th>ASSET</th><th>WINDOW</th><th>ENTRY</th><th>COST</th><th>PAYOUT</th><th>PNL</th><th>OUTCOME</th></tr></thead>
-          <tbody id="ledgerBody"></tbody>
-        </table>
-      </div>
-      <button id="showMore" class="show-more">SHOW MORE RECORDS</button>
+      </details>
     </section>
-
-    <section class="closing">
-      <p>10 / CONTROL REVIEW</p>
-      <h2>The edge disappeared after the patch.</h2>
-      <div>
-        <p>The patch changed the conditions around the strategy. I kept testing the same idea and controlled variants to determine whether the edge was still alive and why execution no longer supported it.</p>
-        <p>Conclusion: the original edge was dead. The evidence pointed to fee drag, oracle timing, fillability and expanded exposure—not to a new profitable system.</p>
-      </div>
+    <section id="outcome" class="section">
+      <div class="section-heading"><p class="eyebrow">03 / Live outcome</p><h2>The run-up and what changed</h2></div>
+      <div class="cash-summary"><p><strong>$19.98 → $210.22</strong><span>Initial trading collateral → observed liquid peak</span></p><p><strong>−$13.70</strong><span>Lifetime settled trading cash P&amp;L</span></p></div>
+      <p class="section-copy">The run-up came mainly from a small cluster of low-priced BTC winners. Speed was part of the implementation, but incomplete trade-to-bot records prevent attributing those gains to the Dublin/hot-eval combination alone.</p>
+      <p class="section-copy">The May 2 code patches removed paper-state entry guards and bypassed the simulator. Later runs traded more, and the next 17 sub-$0.10 markets all lost. That documents the change and the deterioration—not proof that a single code or exchange patch killed the edge. The wallet subsequently fell to dust.</p>
+      <details class="evidence" id="ledger-details"><summary>Explore the reconstructed curve and market ledger</summary>
+        <div class="detail-body">
+          <p>The chart uses gross market-resolution accounting and the original $18 assumption, not observed wallet cash. The later cash audit above corrects that interpretation.</p>
+          <div class="metrics"><article><span>Markets</span><strong id="markets">—</strong></article><article><span>Fill rows</span><strong id="trades">—</strong></article><article><span>Assumed start</span><strong id="starting">—</strong></article><article><span>Reconstructed peak</span><strong id="peak">—</strong></article><article><span>Lifetime net cost</span><strong id="volume">—</strong></article></div>
+          <p id="ledgerOutcome" role="status">Loading the ledger…</p>
+          <div class="chart-wrap"><svg id="equityChart" viewBox="0 0 1200 500" role="img" aria-label="Reconstructed market-resolution balance: assumed $18 start, $221.40 peak, $12.47 end. Not observed liquid cash."></svg><div id="tooltip" class="tooltip" hidden></div></div>
+          <div class="desk-grid"><section><h3>Before and after the peak</h3><div id="phaseTable" class="data-table"></div></section><section><h3>Average entry price</h3><div id="bandTable" class="data-table"></div></section></div>
+          <h3>Market ledger</h3>
+          <div class="filters" aria-label="Filter market ledger"><button class="active" data-filter="all" aria-pressed="true">All</button><button data-filter="btc" aria-pressed="false">BTC</button><button data-filter="eth" aria-pressed="false">ETH</button><button data-filter="sol" aria-pressed="false">SOL</button></div>
+          <div class="ledger-scroll"><table><thead><tr><th scope="col">#</th><th scope="col">Asset</th><th scope="col">Window</th><th scope="col">Entry</th><th scope="col">Cost</th><th scope="col">Payout</th><th scope="col">PnL</th><th scope="col">Result</th></tr></thead><tbody id="ledgerBody"></tbody></table></div>
+          <button id="showMore" class="show-more">Show more markets</button>
+          <p class="caption"><a href="data/market_ledger.csv" download>Download market CSV</a> · <a href="https://polymarket.com/profile/0x0022C02Dda115a6E0307007881a6e19394883DB0">Public wallet ↗</a></p>
+        </div>
+      </details>
     </section>
   </main>
-
-  <footer><span>POLYBOW / FORENSIC ARCHIVE</span><span>PYTHON · MARKETS · RISK · RELIABILITY</span></footer>
+  <footer><span>Polybow / Archived experiment</span><a href="https://github.com/coder058/polybow-case-study/blob/main/EVIDENCE.md">Evidence &amp; limitations ↗</a></footer>
 </body>
 </html>
