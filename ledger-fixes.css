@@ -1,0 +1,2 @@
+/* Keep the native hidden state authoritative even when the button uses display:block. */
+.show-more[hidden]{display:none}
