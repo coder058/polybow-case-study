@@ -12,6 +12,13 @@ experiments. WebSocket callbacks replaced waiting for the monitoring loop.
 The hot-evaluation gate changed from 50 to 5 ms; metadata caching, prewarming,
 parallel lookups and the Dublin execution setup reduced work before submission.
 
+Polymarket separately moved production trading to CLOB V2 on April 28. Its
+official migration material documents new exchange contracts, a rewritten CLOB
+backend, pUSD collateral, changed signed-order fields, match-time fee handling
+and cleared open orders. Polybow's own May 2 changes removed paper-state entry
+and capital guards and replaced its simulator with a no-op. Those are distinct
+events; their timing does not establish which one caused later performance.
+
 Recomputed May 3 preparation-to-API-response medians were **35.35 ms for StratB**
 (52 records) and **33.0 ms for UC** (22). These measure acknowledgements, not
 fills. The earlier approximately 27-second oracle update interval is a different
@@ -31,8 +38,11 @@ The public CSV is a different calculation: gross market-resolution accounting
 with an assumed $18 start, $221.40 peak and $12.47 end (−$5.53 P&L).
 The site keeps that curve and ledger behind an expandable section.
 
-Internal May 2 patches and later deterioration are documented. A single patch
-causing the end of a proven edge is **not** established by the evidence.
+Internal May 2 patches and later deterioration are documented. A later private
+book audit found that the old stale-ask condition was no longer durable in late
+June and early July, but its recordings lacked order sizes and August coverage.
+A single patch causing the end of a proven edge is **not** established by the
+evidence.
 
 ## Reproduce
 

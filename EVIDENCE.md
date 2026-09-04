@@ -1,6 +1,6 @@
 # Polybow: source notes
 
-Reviewed 2026-08-29. This is a condensed source map, not a claim to have read
+Reviewed 2026-09-04. This is a condensed source map, not a claim to have read
 every capture event or rerun a live bot. The investigation covered the original
 Polybow reports, StratA/B lineage, archived VPS code and logs, latency patches,
 fill audits and the later wallet cash reconciliation. No bot was started,
@@ -21,7 +21,8 @@ inspected code and newly recomputed log statistics.
 | Dublin execution stack | `polybow-live/CLAUDE.md`, order-execution notes; archived monitor/order helper | Historical notes specify AWS Dublin, HTTP/2, coincurve signing. Notes quote about 80 ms POST and 0.55 ms per signature, but contain no raw benchmark sample. These are not displayed as newly verified results. |
 | Metadata and connection work | `_optimize_latency.py`, `_patch_prewarm_cache.py`, archived `live_orders.py` | Startup warmup, dedicated HTTP/2 keepalive client, token cache and parallel metadata fetch. The keepalive uses a separate client: it does not by itself prove reuse of the order client's socket. |
 | UC maker/taker experiment | `_patch_latency_maker.py`, `_patch_uc_stack.py` | Maker bids below the ask; April 28 patch attempts a second taker leg. This can increase exposure; it is not evidence of profitable fills. |
-| May 2 internal changes | `_remove_all_simulator_checks.py`, `_stub_simulator.py`; archived monitor | Removal of paper-state per-market/capital guards; replacement of the simulator by a no-op. These are our code changes, not an identified exchange patch. |
+| April 28 exchange upgrade | [Polymarket CLOB V2 migration guide](https://docs.polymarket.com/v2-migration), [official changelog](https://docs.polymarket.com/changelog/predictions), `v1/docs/V2_NOTES.md` | Production moved to new exchange contracts and a rewritten CLOB backend; pUSD replaced USDC.e; signed-order fields and match-time fee handling changed; open orders were wiped. This establishes the venue change and date, not a causal link to this wallet's later results. |
+| May 2 internal changes | `_remove_all_simulator_checks.py`, `_stub_simulator.py`; archived monitor | Removal of paper-state per-market/capital guards; replacement of the simulator by a no-op. These are Polybow code changes, not the April 28 exchange upgrade. |
 
 The archived StratB monitor also retains different price-source paths: its hot
 path uses drift-corrected Binance first, while the main-loop section disables
@@ -100,11 +101,17 @@ winners; 90.06% of reconstructed run-up profit lacks reliable single-bot
 attribution. After the peak, the next 17 markets with average entry below $0.10
 had no wins. More frequent trading and larger average positions followed.
 
-The files establish internal patches and subsequent poor outcomes. They do not
-establish one exchange patch, its deployment time, or a controlled causal link
-between a patch and loss of edge. Accordingly, the page no longer states that
-a specific patch definitively killed an otherwise proven strategy, or that
-Dublin latency alone caused the profitable cluster.
+The files and official Polymarket documentation establish an April 28 CLOB V2
+cutover and separate May 2 internal Polybow changes. They do not establish a
+controlled causal link between either event and loss of edge. The later private
+`research_lottery/VERDICT.md` analysis found no durable stale-ask tickets in
+12,929 markets from June 26 through July 10; a full-stream scan of 104.5 million
+BBO updates found one trigger and apparent crosses that vanished within 0.02
+seconds. That supports a changed later market environment, but the recordings
+lacked order sizes, August data was unavailable, and attributing the change
+specifically to CLOB V2 remains an inference. Accordingly, the page does not
+state that a specific patch definitively killed an otherwise proven strategy,
+or that Dublin latency alone caused the profitable cluster.
 
 This was a real-money experiment followed by loss of the run-up, not evidence
 of durable profitability.

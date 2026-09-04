@@ -4,61 +4,56 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="How Polybow evolved into StratA, StratB and UC: Python, event-driven execution, a Dublin VPS, measured timings and the live outcome.">
-  <title>Polybow / Development notes</title>
+  <title>Polybow — How the bot evolved</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="ledger-fixes.css">
   <script src="app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#story">Skip to development history</a>
+  <a class="skip-link" href="#story">Skip to the project story</a>
   <header class="topbar">
-    <a class="brand" href="#top">“POLYBOW”</a>
-    <nav aria-label="Main"><a href="#execution">Execution</a><a href="#outcome">Outcome</a><a href="https://github.com/coder058/polybow-case-study">Source ↗</a></nav>
+    <a class="brand" href="#top">Polybow</a>
+    <nav aria-label="Main"><a href="#story">Story</a><a href="#execution">Execution</a><a href="#outcome">Outcome</a></nav>
   </header>
   <main id="top">
     <section class="hero">
-      <p class="eyebrow">Development notes / March–May 2026</p>
-      <h1>Building Polybow.</h1>
-      <p class="lead">Could a bot act on a price mismatch before the order book caught up?</p>
-      <p class="intro">Polymarket’s short-duration crypto markets compare an opening and closing oracle price. I built a Python system to capture that reference, follow prices and place orders when the book appeared to disagree.</p>
-      <p class="stack">Python / WebSockets / Chainlink RTDS / Binance / CLOB API / AWS Lightsail</p>
+      <h1>POLYBOW</h1>
+      <p class="lead">A Python bot I built for Polymarket’s five-minute crypto markets.</p>
+      <p class="intro">Polybow captured the market’s opening reference, followed live BTC prices and both outcome order books, and looked for a brief disagreement between direction and price.</p>
+      <p class="intro">The hard part was not choosing Up or Down. It was deciding whether the mismatch was real, whether enough shares were available and whether an order could reach the book before the quote changed.</p>
+      <p class="stack">Python · WebSockets · Chainlink RTDS · Binance · Polymarket CLOB · AWS Lightsail</p>
     </section>
     <section id="story" class="section">
-      <div class="section-heading"><p class="eyebrow">01 / Development</p><h2>Polybow → StratA → StratB → UC</h2></div>
+      <div class="section-heading"><h2>One idea, four versions</h2><p>Each version changed a weakness exposed by the previous one.</p></div>
       <ol class="timeline">
-        <li><div><span class="index">01</span><h3>Polybow</h3></div><p>The first version bought likely winners near expiry. Expensive entries left little upside even when the direction was right. The early oracle feed updated roughly every 27 seconds; faster Binance data and, later, Chainlink RTDS and live order books became part of the pipeline.</p></li>
-        <li><div><span class="index">02</span><h3>StratA</h3></div><p>I moved to mid-priced contracts: $0.40–$0.72, with 11–15 seconds remaining. The aim was more upside per winning trade, not simply a higher win rate. Cheaper entries could also reverse before resolution.</p></li>
-        <li><div><span class="index">03</span><h3>StratB</h3></div><p>A fork of StratA tested wider entry windows and larger BTC-to-opening-price gaps. WebSocket-triggered “hot eval” let a book update run the decision immediately. On the Dublin AWS Lightsail VPS, cached metadata and a warmed execution path reduced work between the signal and the order.</p></li>
-        <li><div><span class="index">04</span><h3>UC <small>Ultra-cheap</small></h3></div><p>The next branch explored $0.01–$0.20 contracts and maker orders below the ask; a later patch also tried a taker leg. Cheap winning shares drove the wallet’s run-up, but fast submission did not guarantee a fill. Later cheap-entry results failed to repeat it.</p></li>
+        <li><h3>Polybow</h3><p>The first version waited until expiry was close and bought the side that looked likely to win. Those contracts were expensive, so correct direction often left little upside. Its early oracle source also updated roughly every 27 seconds, which was too coarse for a five-minute market.</p></li>
+        <li><h3>StratA</h3><p>I switched to mid-priced contracts between $0.40 and $0.72 with 11–15 seconds remaining. The goal was more upside per winning trade, but earlier and cheaper entries also had more time to reverse.</p></li>
+        <li><h3>StratB</h3><p>This branch widened the entry window and required a larger gap between BTC and the market’s opening reference. Live order-book messages could trigger the decision immediately. I also moved the runner to an AWS Lightsail VPS in Dublin and kept the execution path warm.</p></li>
+        <li><h3>UC</h3><p>“Ultra-cheap” explored contracts priced from $0.01 to $0.20, first with maker orders below the ask and later with a taker leg. A small group of cheap BTC winners drove the run-up, but later cheap-entry results did not repeat it.</p></li>
       </ol>
-      <p class="build-note">I used AI assistance for implementation, strategy experiments and log analysis. Actual fills and wallet reconciliation were the checks on those outputs. These were overlapping branches, not four isolated A/B tests.</p>
     </section>
     <section id="execution" class="section">
-      <div class="section-heading"><p class="eyebrow">02 / Execution</p><h2>What became faster</h2></div>
-      <p class="section-copy">Hot eval bypassed the polling wait. Its per-market re-evaluation gate changed from 50 to 5 ms. The Dublin setup used HTTP/2 and faster signing; subsequent changes preloaded token metadata and fetched missing metadata in parallel.</p>
-      <div class="timing-grid">
-        <article><span class="eyebrow">Early data source</span><strong>~27 s</strong><p>Reported oracle update interval.<br>Not order latency.</p></article>
-        <article><span class="eyebrow">StratB / archived execution</span><strong>35.4 ms</strong><p>Median preparation + POST response.<br>p95: 298.0 ms · 52 records.</p></article>
-        <article><span class="eyebrow">UC / archived execution</span><strong>33.0 ms</strong><p>Median preparation + POST response.<br>p95: 289.2 ms · 22 records.</p></article>
+      <div class="section-heading"><h2>From signal to order</h2><p>The work focused on removing avoidable waits before an order reached the CLOB API.</p></div>
+      <div class="execution-steps">
+        <article><h3>React to the book</h3><p>A WebSocket book update triggered “hot eval” instead of waiting for another polling cycle. The per-market re-evaluation gate moved from 50 ms to 5 ms; that was a code setting, not measured end-to-end latency.</p></article>
+        <article><h3>Run from Dublin</h3><p>I moved execution to an AWS Lightsail VPS in Dublin to reduce the expected network path to the venue. I did not run a controlled comparison between regions, so the location alone cannot be credited with the result.</p></article>
+        <article><h3>Keep the path warm</h3><p>The runner reused an HTTP/2 client, used faster order signing, preloaded token metadata and cached it. When metadata was missing, independent requests ran in parallel instead of one after another.</p></article>
+        <article><h3>Measure a defined window</h3><p>The archived timer began at metadata preparation and stopped when the API answered. It measured order preparation plus the POST response—not the earlier signal, a confirmed fill or settlement.</p></article>
       </div>
-      <p class="caption">Recomputed from the May 3 logs. These are different measurements, not a “27 seconds to 33 milliseconds” speed-up. API acknowledgements are not confirmed fills; the 5 ms gate is a configuration value.</p>
-      <details class="evidence"><summary>Timing breakdown and sources</summary>
-        <div class="detail-body">
-          <div class="ledger-scroll"><table><caption>May 3, 2026 · milliseconds · all complete LAT_DETAIL records</caption><thead><tr><th scope="col">Component</th><th scope="col">StratB median</th><th scope="col">UC median</th></tr></thead><tbody><tr><th scope="row">Build order</th><td>1.7</td><td>1.9</td></tr><tr><th scope="row">POST response</th><td>32.9</td><td>29.5</td></tr><tr><th scope="row">Preparation + response</th><td>35.4</td><td>33.0</td></tr></tbody></table></div>
-          <p>StratB: 00:44–04:54 UTC. UC: 00:44–01:59 UTC. The timer starts at metadata preparation and ends at the API response; it excludes earlier feed/decision time and later settlement. Component medians do not sum to the total median.</p>
-          <p>Of these responses, 51/52 StratB and 22/22 UC orders were resting, not immediately matched. The remaining StratB “matched” response was not independently verified in the later audit. These timings do not demonstrate profitable execution.</p>
-          <a href="https://github.com/coder058/polybow-case-study/blob/main/EVIDENCE.md">Source notes, log hashes and reproduction ↗</a>
-        </div>
-      </details>
+      <div class="timing-grid">
+        <article><h3>StratB</h3><strong>35.35 ms</strong><p>Median preparation plus API response across 52 complete records. The p95 was 298.0 ms.</p></article>
+        <article><h3>UC</h3><strong>33.0 ms</strong><p>Median preparation plus API response across 22 complete records. The p95 was 289.2 ms.</p></article>
+      </div>
+      <p class="timing-note">These figures come from complete May 3 records. Of the responses, 51 of 52 StratB orders and all 22 UC orders were resting rather than immediately matched. A quick API acknowledgement is not a fill and does not demonstrate a profitable strategy.</p>
     </section>
     <section id="outcome" class="section">
-      <div class="section-heading"><p class="eyebrow">03 / Live outcome</p><h2>The run-up and what changed</h2></div>
+      <div class="section-heading"><h2>What happened live</h2><p>The balance rose sharply, then the strategy failed to hold up.</p></div>
       <div class="cash-summary"><p><strong>$19.98 → $210.22</strong><span>Initial trading collateral → observed liquid peak</span></p><p><strong>−$13.70</strong><span>Lifetime settled trading cash P&amp;L</span></p></div>
-      <p class="section-copy">The run-up came mainly from a small cluster of low-priced BTC winners. Speed was part of the implementation, but incomplete trade-to-bot records prevent attributing those gains to the Dublin/hot-eval combination alone.</p>
-      <p class="section-copy">The May 2 code patches removed paper-state entry guards and bypassed the simulator. Later runs traded more, and the next 17 sub-$0.10 markets all lost. That documents the change and the deterioration—not proof that a single code or exchange patch killed the edge. The wallet subsequently fell to dust.</p>
-      <details class="evidence" id="ledger-details"><summary>Explore the reconstructed curve and market ledger</summary>
+      <p class="section-copy">The observed liquid balance rose from $19.98 to $210.22, mainly on a small group of low-priced BTC winners. That did not establish a repeatable edge: the complete settled cash record ended at −$13.70.</p>
+      <p class="section-copy">Two changes then overlapped. Polymarket moved to CLOB V2 on April 28, while Polybow’s May 2 patches removed paper-state entry and capital guards and replaced the simulator with a no-op. The bot traded more, and the next 17 markets entered below $0.10 all lost. The timing shows deterioration, but it cannot isolate one change as the cause.</p>
+      <details class="evidence" id="ledger-details"><summary>Inspect the trading record</summary>
         <div class="detail-body">
-          <p>The chart uses gross market-resolution accounting and the original $18 assumption, not observed wallet cash. The later cash audit above corrects that interpretation.</p>
+          <p>The interactive chart is a reconstruction using the project’s original $18 starting assumption. It is useful for following the sequence of markets, but it is not the observed wallet-cash series shown above.</p>
           <div class="metrics"><article><span>Markets</span><strong id="markets">—</strong></article><article><span>Fill rows</span><strong id="trades">—</strong></article><article><span>Assumed start</span><strong id="starting">—</strong></article><article><span>Reconstructed peak</span><strong id="peak">—</strong></article><article><span>Lifetime net cost</span><strong id="volume">—</strong></article></div>
           <p id="ledgerOutcome" role="status">Loading the ledger…</p>
           <div class="chart-wrap"><svg id="equityChart" viewBox="0 0 1200 500" role="img" aria-label="Reconstructed market-resolution balance: assumed $18 start, $221.40 peak, $12.47 end. Not observed liquid cash."></svg><div id="tooltip" class="tooltip" hidden></div></div>
@@ -67,11 +62,11 @@
           <div class="filters" aria-label="Filter market ledger"><button class="active" data-filter="all" aria-pressed="true">All</button><button data-filter="btc" aria-pressed="false">BTC</button><button data-filter="eth" aria-pressed="false">ETH</button><button data-filter="sol" aria-pressed="false">SOL</button></div>
           <div class="ledger-scroll"><table><thead><tr><th scope="col">#</th><th scope="col">Asset</th><th scope="col">Window</th><th scope="col">Entry</th><th scope="col">Cost</th><th scope="col">Payout</th><th scope="col">PnL</th><th scope="col">Result</th></tr></thead><tbody id="ledgerBody"></tbody></table></div>
           <button id="showMore" class="show-more">Show more markets</button>
-          <p class="caption"><a href="data/market_ledger.csv" download>Download market CSV</a> · <a href="https://polymarket.com/profile/0x0022C02Dda115a6E0307007881a6e19394883DB0">Public wallet ↗</a></p>
+          <p class="record-links"><a href="data/market_ledger.csv" download>Download market CSV</a> · <a href="https://polymarket.com/profile/0x0022C02Dda115a6E0307007881a6e19394883DB0">Open the public wallet ↗</a></p>
         </div>
       </details>
     </section>
   </main>
-  <footer><span>Polybow / Archived experiment</span><a href="https://github.com/coder058/polybow-case-study/blob/main/EVIDENCE.md">Evidence &amp; limitations ↗</a></footer>
+  <footer><span>Polybow · archived experiment</span><span>Python · WebSockets · CLOB API</span></footer>
 </body>
 </html>
