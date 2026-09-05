@@ -24,7 +24,7 @@
       <p class="stack">Python · WebSockets · Chainlink RTDS · Binance · Polymarket CLOB · AWS Lightsail</p>
     </section>
     <section id="story" class="section">
-      <div class="section-heading"><h2>One idea, four versions</h2><p>Each version changed a weakness exposed by the previous one.</p></div>
+      <div class="section-heading"><h2>One idea, four versions</h2><p>The branches overlapped, testing different entry prices, timing windows and execution paths.</p></div>
       <ol class="timeline">
         <li><h3>Polybow</h3><p>The first version waited until expiry was close and bought the side that looked likely to win. Those contracts were expensive, so correct direction often left little upside. Its early oracle source also updated roughly every 27 seconds, which was too coarse for a five-minute market.</p></li>
         <li><h3>StratA</h3><p>I switched to mid-priced contracts between $0.40 and $0.72 with 11–15 seconds remaining. The goal was more upside per winning trade, but earlier and cheaper entries also had more time to reverse.</p></li>
@@ -37,7 +37,7 @@
       <div class="execution-steps">
         <article><h3>React to the book</h3><p>A WebSocket book update triggered “hot eval” instead of waiting for another polling cycle. The per-market re-evaluation gate moved from 50 ms to 5 ms; that was a code setting, not measured end-to-end latency.</p></article>
         <article><h3>Run from Dublin</h3><p>I moved execution to an AWS Lightsail VPS in Dublin to reduce the expected network path to the venue. I did not run a controlled comparison between regions, so the location alone cannot be credited with the result.</p></article>
-        <article><h3>Keep the path warm</h3><p>The runner reused an HTTP/2 client, used faster order signing, preloaded token metadata and cached it. When metadata was missing, independent requests ran in parallel instead of one after another.</p></article>
+        <article><h3>Prepare before submitting</h3><p>I added HTTP/2 and coincurve signing, preloaded token metadata and cached it. When metadata was missing, independent requests ran in parallel instead of one after another. This reduced repeated work; the archived timings below measure the whole preparation and response window.</p></article>
         <article><h3>Measure a defined window</h3><p>The archived timer began at metadata preparation and stopped when the API answered. It measured order preparation plus the POST response—not the earlier signal, a confirmed fill or settlement.</p></article>
       </div>
       <div class="timing-grid">
