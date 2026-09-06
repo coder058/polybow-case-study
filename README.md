@@ -5,6 +5,8 @@ UC, event-driven evaluation, a Dublin VPS and the live outcome.
 
 [Website](https://polybow-archive.vercel.app/) · [Evidence and source map](EVIDENCE.md)
 
+[Project walkthrough: signal path, dependencies and reproduction steps](https://coder058.github.io/profile/projects/polybow.html).
+
 ## What changed
 
 The initial favorite-buying approach evolved into mid-price and then cheap-entry
