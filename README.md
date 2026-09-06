@@ -1,6 +1,6 @@
-# Polybow / Development notes
+# Python trading bot / Development notes
 
-A concise account of a Python trading experiment: Polybow → StratA → StratB →
+A concise account of a Python trading experiment: v1 → StratA → StratB →
 UC, event-driven evaluation, a Dublin VPS and the live outcome.
 
 [Website](https://polybow-archive.vercel.app/) · [Evidence and source map](EVIDENCE.md)
@@ -17,7 +17,7 @@ parallel lookups and the Dublin execution setup reduced work before submission.
 Polymarket separately moved production trading to CLOB V2 on April 28. Its
 official migration material documents new exchange contracts, a rewritten CLOB
 backend, pUSD collateral, changed signed-order fields, match-time fee handling
-and cleared open orders. Polybow's own May 2 changes removed paper-state entry
+and cleared open orders. The bot’s own May 2 changes removed paper-state entry
 and capital guards and replaced its simulator with a no-op. Those are distinct
 events; their timing does not establish which one caused later performance.
 

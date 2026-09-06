@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="How Polybow evolved into StratA, StratB and UC: Python, event-driven execution, a Dublin VPS, measured timings and the live outcome.">
-  <title>Polybow — How the bot evolved</title>
+  <meta name="description" content="How a Python trading bot evolved into StratA, StratB and UC: event-driven execution, a Dublin VPS, measured timings and the live outcome.">
+  <title>Python trading bot — How it evolved</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="ledger-fixes.css">
   <script src="app.js" defer></script>
@@ -12,21 +12,21 @@
 <body>
   <a class="skip-link" href="#story">Skip to the project story</a>
   <header class="topbar">
-    <a class="brand" href="#top">Polybow</a>
+    <a class="brand" href="#top">Trading bot</a>
     <nav aria-label="Main"><a href="#story">Story</a><a href="#execution">Execution</a><a href="#outcome">Outcome</a></nav>
   </header>
   <main id="top">
     <section class="hero">
-      <h1>POLYBOW</h1>
-      <p class="lead">A Python bot I built for Polymarket’s five-minute crypto markets.</p>
-      <p class="intro">Polybow captured the market’s opening reference, followed live BTC prices and both outcome order books, and looked for a brief disagreement between direction and price.</p>
+      <h1>PYTHON TRADING BOT</h1>
+      <p class="lead">An automated Python bot I built for Polymarket’s five-minute crypto markets.</p>
+      <p class="intro">It captured the market’s opening reference, followed live BTC prices and both outcome order books, and looked for a brief disagreement between direction and price.</p>
       <p class="intro">The hard part was not choosing Up or Down. It was deciding whether the mismatch was real, whether enough shares were available and whether an order could reach the book before the quote changed.</p>
       <p class="stack">Python · WebSockets · Chainlink RTDS · Binance · Polymarket CLOB · AWS Lightsail</p>
     </section>
     <section id="story" class="section">
       <div class="section-heading"><h2>One idea, four versions</h2><p>The branches overlapped, testing different entry prices, timing windows and execution paths.</p></div>
       <ol class="timeline">
-        <li><h3>Polybow</h3><p>The first version waited until expiry was close and bought the side that looked likely to win. Those contracts were expensive, so correct direction often left little upside. Its early oracle source also updated roughly every 27 seconds, which was too coarse for a five-minute market.</p></li>
+        <li><h3>v1</h3><p>The first version waited until expiry was close and bought the side that looked likely to win. Those contracts were expensive, so correct direction often left little upside. Its early oracle source also updated roughly every 27 seconds, which was too coarse for a five-minute market.</p></li>
         <li><h3>StratA</h3><p>I switched to mid-priced contracts between $0.40 and $0.72 with 11–15 seconds remaining. The goal was more upside per winning trade, but earlier and cheaper entries also had more time to reverse.</p></li>
         <li><h3>StratB</h3><p>This branch widened the entry window and required a larger gap between BTC and the market’s opening reference. Live order-book messages could trigger the decision immediately. I also moved the runner to an AWS Lightsail VPS in Dublin and kept the execution path warm.</p></li>
         <li><h3>UC</h3><p>“Ultra-cheap” explored contracts priced from $0.01 to $0.20, first with maker orders below the ask and later with a taker leg. A small group of cheap BTC winners drove the run-up, but later cheap-entry results did not repeat it.</p></li>
@@ -50,7 +50,7 @@
       <div class="section-heading"><h2>What happened live</h2><p>The balance rose sharply, then the strategy failed to hold up.</p></div>
       <div class="cash-summary"><p><strong>$19.98 → $210.22</strong><span>Initial trading collateral → observed liquid peak</span></p><p><strong>−$13.70</strong><span>Lifetime settled trading cash P&amp;L</span></p></div>
       <p class="section-copy">The observed liquid balance rose from $19.98 to $210.22, mainly on a small group of low-priced BTC winners. That did not establish a repeatable edge: the complete settled cash record ended at −$13.70.</p>
-      <p class="section-copy">Two changes then overlapped. Polymarket moved to CLOB V2 on April 28, while Polybow’s May 2 patches removed paper-state entry and capital guards and replaced the simulator with a no-op. The bot traded more, and the next 17 markets entered below $0.10 all lost. The timing shows deterioration, but it cannot isolate one change as the cause.</p>
+      <p class="section-copy">Two changes then overlapped. Polymarket moved to CLOB V2 on April 28, while the bot’s May 2 patches removed paper-state entry and capital guards and replaced the simulator with a no-op. The bot traded more, and the next 17 markets entered below $0.10 all lost. The timing shows deterioration, but it cannot isolate one change as the cause.</p>
       <details class="evidence" id="ledger-details"><summary>Inspect the trading record</summary>
         <div class="detail-body">
           <p>The interactive chart is a reconstruction using the project’s original $18 starting assumption. It is useful for following the sequence of markets, but it is not the observed wallet-cash series shown above.</p>
@@ -67,6 +67,6 @@
       </details>
     </section>
   </main>
-  <footer><span>Polybow · archived experiment</span><span>Python · WebSockets · CLOB API</span></footer>
+  <footer><span>Python trading bot · archived experiment</span><span>Python · WebSockets · CLOB API</span></footer>
 </body>
 </html>

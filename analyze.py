@@ -1,4 +1,4 @@
-"""Reproduce the public Polybow wallet-level postmortem."""
+"""Reproduce the public wallet-level postmortem for the Python trading bot."""
 
 from __future__ import annotations
 

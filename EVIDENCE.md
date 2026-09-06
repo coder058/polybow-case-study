@@ -1,8 +1,8 @@
-# Polybow: source notes
+# Python trading bot: source notes
 
 Reviewed 2026-09-04. This is a condensed source map, not a claim to have read
 every capture event or rerun a live bot. The investigation covered the original
-Polybow reports, StratA/B lineage, archived VPS code and logs, latency patches,
+Private reports, StratA/B lineage, archived VPS code and logs, latency patches,
 fill audits and the later wallet cash reconciliation. No bot was started,
 restarted or allowed to place an order during this review.
 
@@ -15,14 +15,14 @@ inspected code and newly recomputed log statistics.
 | Claim | Source | What it establishes |
 |---|---|---|
 | Early oracle updates approximately every 27 seconds | `polybowtwo/POLYBOW_REPORT.md`, chapters 1–2 | Historical observation of a data-source update interval, not an end-to-end execution benchmark. The early report also explicitly rejects theoretical-price simulation profits. |
-| Polybow → StratA → StratB → cheap variants | `polybow-live/_analysis/stratb_lineage_edge_report.md`, Lineage | Original favorite entries; StratA's $0.40–$0.72 / 11–15-second band; broader StratB configurations; subsequent cheap-fill experiments. |
-| Branches overlap | `polybow-live/ALL_SESSIONS_ANALYSIS.md`, generated April 22 | Polybow, StratA and StratB coexisted. Do not describe their chronology as four isolated, sequential trials. Its local P&L is not used as wallet truth. |
+| v1 → StratA → StratB → cheap variants | `polybow-live/_analysis/stratb_lineage_edge_report.md`, Lineage | Original favorite entries; StratA's $0.40–$0.72 / 11–15-second band; broader StratB configurations; subsequent cheap-fill experiments. |
+| Branches overlap | `polybow-live/ALL_SESSIONS_ANALYSIS.md`, generated April 22 | v1, StratA and StratB coexisted. Do not describe their chronology as four isolated, sequential trials. Its local P&L is not used as wallet truth. |
 | Event-driven hot evaluation | `archived_vps_polybow/_staging/polybow_stratB/patch_event_driven.py`; corresponding `live_monitor.py` | Priority book callbacks invoke evaluation; a nonblocking lock coordinates the main loop and callback. Original 50 ms throttle; archived monitor line 1319 sets 5 ms. That is a gate, not measured latency. |
 | Dublin execution stack | `polybow-live/CLAUDE.md`, order-execution notes; archived monitor/order helper | Historical notes specify AWS Dublin, HTTP/2, coincurve signing. Notes quote about 80 ms POST and 0.55 ms per signature, but contain no raw benchmark sample. These are not displayed as newly verified results. |
 | Metadata and connection work | `_optimize_latency.py`, `_patch_prewarm_cache.py`, archived `live_orders.py` | Startup warmup, dedicated HTTP/2 keepalive client, token cache and parallel metadata fetch. The keepalive uses a separate client: it does not by itself prove reuse of the order client's socket. |
 | UC maker/taker experiment | `_patch_latency_maker.py`, `_patch_uc_stack.py` | Maker bids below the ask; April 28 patch attempts a second taker leg. This can increase exposure; it is not evidence of profitable fills. |
 | April 28 exchange upgrade | [Polymarket CLOB V2 migration guide](https://docs.polymarket.com/v2-migration), [official changelog](https://docs.polymarket.com/changelog/predictions), `v1/docs/V2_NOTES.md` | Production moved to new exchange contracts and a rewritten CLOB backend; pUSD replaced USDC.e; signed-order fields and match-time fee handling changed; open orders were wiped. This establishes the venue change and date, not a causal link to this wallet's later results. |
-| May 2 internal changes | `_remove_all_simulator_checks.py`, `_stub_simulator.py`; archived monitor | Removal of paper-state per-market/capital guards; replacement of the simulator by a no-op. These are Polybow code changes, not the April 28 exchange upgrade. |
+| May 2 internal changes | `_remove_all_simulator_checks.py`, `_stub_simulator.py`; archived monitor | Removal of paper-state per-market/capital guards; replacement of the simulator by a no-op. These are bot code changes, not the April 28 exchange upgrade. |
 
 The archived StratB monitor also retains different price-source paths: its hot
 path uses drift-corrected Binance first, while the main-loop section disables
@@ -102,7 +102,7 @@ attribution. After the peak, the next 17 markets with average entry below $0.10
 had no wins. More frequent trading and larger average positions followed.
 
 The files and official Polymarket documentation establish an April 28 CLOB V2
-cutover and separate May 2 internal Polybow changes. They do not establish a
+cutover and separate May 2 internal bot changes. They do not establish a
 controlled causal link between either event and loss of edge. The later private
 `research_lottery/VERDICT.md` analysis found no durable stale-ask tickets in
 12,929 markets from June 26 through July 10; a full-stream scan of 104.5 million
